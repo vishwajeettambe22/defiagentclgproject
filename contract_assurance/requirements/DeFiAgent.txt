@@ -1,0 +1,38 @@
+Implement a single-file Solidity 0.8.20 contract named DeFiAgent.
+
+Purpose: non-custodial smart contract for a DeFi transaction agent on a testnet.
+The contract is only called directly by user wallets; there is no backend or AI
+authority over it. It has one owner address set at deployment, used only for
+emergency controls. The owner can never move or withdraw user funds.
+
+State: owner, a per-transaction spending limit maxTransferAmount (in wei, set by
+the constructor, must be positive), a paused flag, a stakedBalance mapping per
+address, and an integrityAnchors mapping from a bytes32 requestId to a bytes32
+integrity hash.
+
+transfer(address payable recipient, bytes32 intentHash) is payable. It forwards
+msg.value to recipient with a low-level call whose result is checked. It reverts
+if the contract is paused, if msg.value is zero or above maxTransferAmount, if
+recipient is the zero address, or if recipient equals msg.sender. It emits
+TransferExecuted(from, to, amount, timestamp, intentHash).
+
+stake(bytes32 intentHash) is payable. It reverts if paused or if msg.value is
+zero or above maxTransferAmount. It increases stakedBalance[msg.sender] by
+msg.value and emits StakeExecuted(staker, amount, timestamp, intentHash).
+
+unstake(uint256 amount) reverts if amount is zero or exceeds the caller's
+stakedBalance. It reduces the balance before sending the Ether back to the
+caller with a checked low-level call. It must keep working while the contract is
+paused, so staked funds can always be withdrawn; pausing blocks only transfer and
+stake.
+
+anchorIntegrity(bytes32 requestId, bytes32 integrityHash) reverts if either
+argument is zero or if msg.sender already anchored that requestId, so an anchor
+can never be overwritten. Anchors are stored per wallet (mapping from wallet to
+requestId to hash), so no other wallet can pre-empt or block them. It emits
+IntegrityAnchored(requestId, integrityHash, wallet, timestamp).
+getIntegrityHash(address wallet, bytes32 requestId) returns the stored hash or zero.
+
+Only the owner can pause, unpause, and change maxTransferAmount (new limit must
+be positive). The contract also accepts plain Ether through receive and fallback.
+Use msg.sender for all authorization, never tx.origin.

@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "contract": "DeFiAgent",
+  "source_path": "contracts/contracts/DeFiAgent.sol",
+  "source_sha256": "96a7760aa62a9f4d77c66a39b8bcb34e412736b4bdc740245b6f2023463a2f8b",
+  "lever_cross_check": {
+    "status": "not_run",
+    "requirement": null,
+    "mode": null,
+    "run_id": null,
+    "passed": null,
+    "lean_passed": null,
+    "ran_at": null,
+    "scope_note": "LeVer synthesizes and checks a reference candidate from the requirement text. It does not verify DeFiAgent.sol itself; a pass is not a security guarantee."
+  },
+  "manual_review": {
+    "date": "2026-10-20",
+    "method": "Manual mapping of DeFiAgent.sol against the LeVer property library (lever/property.json). This is a code review by the assistant, not LeVer output, and has not been run through Hardhat or a formal tool. Team confirmation pending. MR-1 and MR-2 were fixed after the review and covered by Hardhat tests (27 passing, run with a solc-js compiler in a sandbox); the fix itself has not been re-reviewed by a second person or by LeVer.",
+    "findings": [
+      {
+        "id": "MR-1",
+        "lever_property": "L3.1-Withdrawal",
+        "severity": "medium",
+        "status": "resolved",
+        "title": "Staked funds can be locked while paused",
+        "detail": "unstake() has the notPaused modifier and the contract has no way to change or renounce the owner. If the owner pauses (or loses the key while paused), stakers cannot withdraw.",
+        "recommendation": "Remove notPaused from unstake() so withdrawal always works; keep pause for transfer and stake only.",
+        "resolution": "Removed notPaused from unstake(); pause now blocks only transfer and stake. Hardhat tests: unstake works while paused, stake still blocked while paused."
+      },
+      {
+        "id": "MR-2",
+        "lever_property": "L3.4-FrontRunning / L2.2-NoDoubleAction",
+        "severity": "medium",
+        "status": "resolved",
+        "title": "Integrity anchor can be pre-empted by another wallet",
+        "detail": "anchorIntegrity() is first-come per requestId and does not bind the anchor to the caller. A wallet that sees the pending transaction can anchor a different hash first, and anchors cannot be changed, so the correct hash can never be stored (FR-08).",
+        "recommendation": "Key the mapping by (msg.sender, requestId) or store the anchoring wallet and require it to match; add a test for this case.",
+        "resolution": "integrityAnchors is now keyed by (wallet, requestId) and getIntegrityHash takes (wallet, requestId). Hardhat tests: another wallet cannot pre-empt or block an anchor; anchors are not readable across wallets."
+      },
+      {
+        "id": "MR-3",
+        "lever_property": "L2.4-SideEffects",
+        "severity": "low",
+        "status": "open",
+        "title": "unstake() emits no event",
+        "detail": "stake and transfer emit events that form the on-chain record, but unstake does not, so withdrawals are missing from the on-chain trail.",
+        "recommendation": "Emit an UnstakeExecuted event.",
+        "resolution": null
+      },
+      {
+        "id": "MR-4",
+        "lever_property": "L1.3-UnexpectedEther",
+        "severity": "low",
+        "status": "open",
+        "title": "Stray Ether cannot be recovered",
+        "detail": "receive() and fallback() accept Ether with no accounting or withdrawal path. Solvency still holds, but accidental transfers are locked.",
+        "recommendation": "Remove the payable fallback, or document it as accepted behaviour.",
+        "resolution": null
+      },
+      {
+        "id": "MR-5",
+        "lever_property": "L1.4-ERCCompliance (scope)",
+        "severity": "info",
+        "status": "open",
+        "title": "Swap and ERC-20 are not on-chain",
+        "detail": "The contract implements transfer (ETH), stake/unstake and anchoring only. README already states swap and staking are simulated, and ERC-20 needs extra setup.",
+        "recommendation": "Keep the documented limitation visible in the SRS and viva material.",
+        "resolution": null
+      }
+    ],
+    "satisfied": [
+      {
+        "lever_property": "L1.1 Arithmetic Safety",
+        "note": "Solidity 0.8.20 checked arithmetic; no unchecked blocks."
+      },
+      {
+        "lever_property": "L1.3-Reentrancy",
+        "note": "unstake() reduces stakedBalance before the external call; transfer() holds no state."
+      },
+      {
+        "lever_property": "L1.3-UncheckedReturn",
+        "note": "Both low-level calls check the success flag."
+      },
+      {
+        "lever_property": "L1.5-TxOrigin",
+        "note": "Authorization uses msg.sender only."
+      },
+      {
+        "lever_property": "L2.3-Solvency",
+        "note": "stakedBalance only grows by msg.value and shrinks before payout."
+      },
+      {
+        "lever_property": "L2.5-CapsLimits",
+        "note": "transfer and stake are capped per transaction by maxTransferAmount (matches MAX_TX_AMOUNT_ETH)."
+      },
+      {
+        "lever_property": "L3.2-PullPattern",
+        "note": "A reverting recipient only reverts its own transfer; no shared state is blocked."
+      },
+      {
+        "lever_property": "L3.1-Withdrawal (after MR-1 fix)",
+        "note": "unstake() is available while paused."
+      },
+      {
+        "lever_property": "L3.4-FrontRunning (after MR-2 fix)",
+        "note": "Anchors are per wallet; another wallet cannot pre-empt them."
+      }
+    ]
+  }
+}

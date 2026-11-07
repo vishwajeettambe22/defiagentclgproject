@@ -1,0 +1,50 @@
+# Environment — NEVER commit
+.env
+*.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Hardhat
+contracts/cache/
+contracts/artifacts/
+contracts/.env
+
+# OS
+.DS_Store
+*.swp
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Database
+*.db
+*.sqlite
+
+# Private keys — ABSOLUTE NEVER
+*.key
+*.pem
+keystore/
+
+# LeVer contract assurance
+contract_assurance/.env
+contract_assurance/.venv/
+contract_assurance/output/
+contract_assurance/lever/experiments/
+contract_assurance/lever/libs_cache/
